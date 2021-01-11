@@ -50,7 +50,7 @@ class KeycloakResourceOwner implements ResourceOwnerInterface
      */
     public function getName()
     {
-        return $this->response['preferred_username'] ?: null;
+        return $this->response['username'] ?: null;
     }
 
     /**

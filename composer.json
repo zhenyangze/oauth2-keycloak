@@ -1,6 +1,6 @@
 {
     "name": "yangze/oauth2-keycloak",
-    "description": "Keycloak OAuth 2.0 Client Provider for The PHP League OAuth2-Client",
+    "description": "A wrapper for the Keycloak OAuth 2.0 Client Provider",
     "license": "MIT",
     "authors": [
         {

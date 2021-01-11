@@ -26,6 +26,16 @@ class SSO
     private $adapter;
 
     /**
+     * accessToken
+     */
+    private $accessToken;
+
+    /**
+     * token
+     */
+    private $token;
+
+    /**
      * instance
      */
     static private $instance;
@@ -83,7 +93,7 @@ class SSO
      *
      * @return 
      */
-    static public function connect($config = [], AdapterAbstract $adapter = null)
+    static public function init($config = [], AdapterAbstract $adapter = null)
     {
         if (!self::$instance instanceof self) {
             self::$instance = new self($config, $adapter);
@@ -112,18 +122,20 @@ class SSO
             return $this->userInfo;
         }
         // first:try to get accessToken
-        $accessToken = $this->getAccessToken();
+        $this->accessToken = $accessToken = $this->getAccessTokenFromServer();
 
         // second:create AccessToken class
-        $token = $this->getAccessTokenEntity($accessToken);
+        $this->token = $token = $this->getAccessTokenEntity($accessToken);
 
-        // four:get use info
-        $user = $this->getUserInfoByToken($token);
-
-        // retry refreshToken
-        if (empty($user) && $this->model == self::$MODEL_REFRESH_TOKEN) {
-            $token = $this->getTokenByRefreshToken($token);
-            $user = $this->getUserInfoByToken($token, self::$MODEL_REFRESH_TOKEN);
+        try {
+            if ($this->model == self::$MODEL_REFRESH_TOKEN && $token->hasExpired()) {
+                $this->token = $token = $this->getTokenByRefreshToken($token);
+                $user = $this->getUserInfoByToken($token, self::$MODEL_REFRESH_TOKEN);
+            } else {
+                $user = $this->getUserInfoByToken($token);
+            }
+        } catch (\Exception $e) {
+            $user = $this->getUserInfoByToken($token);
         }
 
         if (empty($user)){
@@ -162,7 +174,38 @@ class SSO
      *
      * @return 
      */
-    protected function getAccessToken()
+    public function getAccessToken()
+    {
+        if (empty($this->accessToken)) {
+            $this->accessToken = $this->adapter->getAccessToken();
+        }
+
+        return $this->accessToken;
+    }
+
+    /**
+     * getToken 
+     *
+     * @return 
+     */
+    public function getToken()
+    {
+        if (empty($this->token)) {
+            $accessToken = $this->getAccessToken();
+            if (!empty($accessToken)) {
+                $this->token = $this->adapter->getToken($accessToken);
+            }
+        }
+        return $this->token;
+    }
+
+
+    /**
+     * getAccessTokenFromServer 
+     *
+     * @return 
+     */
+    public function getAccessTokenFromServer()
     {
         $accessToken = $this->adapter->getAccessToken();
         if (empty($accessToken)) {
@@ -181,9 +224,15 @@ class SSO
      */
     public function Auth()
     {
-        $this->adapter->saveAccessToken('');
+        $this->clearRecord();
         header('Location: ' . $this->getAuthorizationUrl());
         exit;
+    }
+
+    protected function clearRecord()
+    {
+        $this->accessToken = '';
+        $this->adapter->saveAccessToken('');
     }
 
     /**
@@ -203,6 +252,7 @@ class SSO
      */
     public function logout()
     {
+        $this->clearRecord();
         header('Location: ' . $this->getLogoutUrl());
         exit;
     }
@@ -225,22 +275,6 @@ class SSO
     public function getUserInfo()
     {
         return $this->userInfo;
-    }
-
-    /**
-     * getUserAttr 
-     *
-     * @param $key
-     *
-     * @return 
-     */
-    public function getUserAttr($key = '')
-    {
-        if (isset($this->userInfo[$key])) {
-            return $this->userInfo[$key];
-        }
-
-        return null;
     }
 
     /**
