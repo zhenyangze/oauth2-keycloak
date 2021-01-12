@@ -15,7 +15,7 @@ composer require yangze/oauth2-keycloak
 ### Init
 
 ```php
-$sso = SSO::init([
+$passport = Passport::init([
     'authServerUrl'         => 'http://127.0.0.1:8080/auth',
     'realm'                 => 'xxxx',
     'clientId'              => 'backend',
@@ -27,7 +27,7 @@ $sso = SSO::init([
 ### Login
 
 ```php
-$user = $sso->checkLogin();
+$user = $passport->checkLogin();
 $user->getAttr('username');
 $user->toArray();
 ```
@@ -35,15 +35,15 @@ $user->toArray();
 ### logout
 
 ```php
-$sso->logout();
+$passport->logout();
 ```
 
 ### Other Methd
 
 ```php
-$sso->getAccessToken(); // can save in client
-$sso->getToken(); // secret
-$sso->getAuthorizationUrl();
-$sso->getLogoutUrl();
+$passport->getAccessToken(); // can save in client
+$passport->getToken(); // secret
+$passport->getAuthorizationUrl();
+$passport->getLogoutUrl();
 ```
 
