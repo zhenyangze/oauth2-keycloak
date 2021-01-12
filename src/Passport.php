@@ -8,9 +8,9 @@ use Stevenmaguire\OAuth2\Client\Adapter\DefaultAdapter;
 use Stevenmaguire\OAuth2\Client\Provider\Keycloak;
 
 /**
- *  SSO
+ *  Passport
  */
-class SSO
+class Passport
 {
     /**
      * provider
