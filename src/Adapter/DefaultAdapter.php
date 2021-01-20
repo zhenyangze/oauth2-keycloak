@@ -27,7 +27,7 @@ class DefaultAdapter extends AdapterAbstract
      */
     public function saveAccessToken($accessToken = '')
     {
-        setcookie('token', $accessToken);
+        setcookie('token', $accessToken, time() + 3600 * 12, '/');
     }
 
     /**
@@ -45,7 +45,7 @@ class DefaultAdapter extends AdapterAbstract
     /**
      * {@inheritDoc}
      */
-    public function saveToken($accessToken = '', $token)
+    public function saveToken($accessToken = '', $token, $time = 3600)
     {
         if (!session_id()) {
             session_start();
@@ -60,5 +60,12 @@ class DefaultAdapter extends AdapterAbstract
     public function getCode()
     {
         return isset($_GET['code']) ? $_GET['code'] : '';
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function log($e)
+    {
     }
 }

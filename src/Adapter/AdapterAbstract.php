@@ -43,10 +43,11 @@ abstract class AdapterAbstract
      *
      * @param $accessToken
      * @param $token
+     * @param $time
      *
      * @return 
      */
-    abstract public function saveToken($accessToken = '', $token);
+    abstract public function saveToken($accessToken = '', $token, $time = 3600);
 
     /**
      * getCode 
@@ -54,4 +55,13 @@ abstract class AdapterAbstract
      * @return 
      */
     abstract public function getCode();
+
+    /**
+     * log 
+     *
+     * @param $e
+     *
+     * @return 
+     */
+    abstract public function log($e);
 }

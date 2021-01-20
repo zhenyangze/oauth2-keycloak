@@ -44,9 +44,9 @@ class LumenAdapter extends AdapterAbstract
     /**
      * {@inheritDoc}
      */
-    public function saveToken($accessToken = '', $token)
+    public function saveToken($accessToken = '', $token, $time = 3600)
     {
-        Cache::put($accessToken, json_encode($token));
+        Cache::put($accessToken, json_encode($token), $time);
     }
 
     /**
@@ -55,5 +55,12 @@ class LumenAdapter extends AdapterAbstract
     public function getCode()
     {
         return \request('code');
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function log($e)
+    {
     }
 }

@@ -5,14 +5,14 @@ namespace Stevenmaguire\OAuth2\Client\Adapter;
 /**
  * Short description for DefaultAdapter.php
  *
- * @package CookieAdapter 
+ * @package CodeIgniterAdapter
  * @author zhenyangze <zhenyangze@gmail.com>
  * @version 0.1
  * @copyright (C) 2021 zhenyangze <zhenyangze@gmail.com>
  * @license MIT
  */
 
-class CookieAdapter extends AdapterAbstract
+class CodeIgniterAdapter extends AdapterAbstract
 {
     /**
      * {@inheritDoc}
@@ -35,7 +35,13 @@ class CookieAdapter extends AdapterAbstract
      */
     public function getToken($accessToken = '')
     {
-        return '';
+        if (!function_exists('get_instance')) {
+            return '';
+        }
+
+        $CI = &get_instance();
+        $CI->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
+        return $CI->cache->get($accessToken);
     }
 
     /**
@@ -43,7 +49,13 @@ class CookieAdapter extends AdapterAbstract
      */
     public function saveToken($accessToken = '', $token, $time = 3600)
     {
-        return;
+        if (!function_exists('get_instance')) {
+            return;
+        }
+
+        $CI = &get_instance();
+        $CI->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
+        return $CI->cache->save($accessToken, $token, $time);
     }
 
     /**

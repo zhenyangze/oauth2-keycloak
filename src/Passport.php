@@ -63,10 +63,10 @@ class Passport
      *
      * @return 
      */
-    private function __construct($config = [], AdapterAbstract $adapter = null){
+    private function __construct($config = [], AdapterAbstract $adapter = null, $model = 2){
         $this->provider  = new Keycloak($config);
         $this->adapter = empty($adapter) ? new DefaultAdapter : $adapter;
-        $this->model = self::$MODEL_TOKEN;
+        $this->model = $model;
         /*$this->provider  = new Keycloak([
             'authServerUrl' => 'http://127.0.0.1:8080/auth',
             'realm'         => 'real-demo',
@@ -90,13 +90,14 @@ class Passport
      *
      * @param $config
      * @param $adapter
+     * @param $model
      *
      * @return 
      */
-    static public function init($config = [], AdapterAbstract $adapter = null)
+    static public function init($config = [], AdapterAbstract $adapter = null, $model = 2)
     {
         if (!self::$instance instanceof self) {
-            self::$instance = new self($config, $adapter);
+            self::$instance = new self($config, $adapter, $model);
         }
         return self::$instance;
     }
@@ -114,32 +115,33 @@ class Passport
     /**
      * checkLogin 
      *
+     * @param $autoJump
+     *
      * @return 
      */
-    public function checkLogin()
+    public function checkLogin($autoJump = true)
     {
         if (!empty($this->userInfo)) {
             return $this->userInfo;
         }
-        // first:try to get accessToken
-        $this->accessToken = $accessToken = $this->getAccessTokenFromServer();
 
-        // second:create AccessToken class
-        $this->token = $token = $this->getAccessTokenEntity($accessToken);
-
+        $user = null;
         try {
+            $this->accessToken = $accessToken = $this->getAccessTokenFromServer();
+            $this->token = $token = $this->getAccessTokenEntity($accessToken);
+
             if ($this->model == self::$MODEL_REFRESH_TOKEN && $token->hasExpired()) {
                 $this->token = $token = $this->getTokenByRefreshToken($token);
-                $user = $this->getUserInfoByToken($token, self::$MODEL_REFRESH_TOKEN);
-            } else {
-                $user = $this->getUserInfoByToken($token);
             }
-        } catch (\Exception $e) {
             $user = $this->getUserInfoByToken($token);
+        } catch (\Exception $e) {
+            $this->adapter->log($e);
         }
 
-        if (empty($user)){
+        if (empty($user) && $autoJump){
             $this->Auth();
+        } else if (empty($user) && !$autoJump) {
+            return null;
         }
 
         $this->userInfo = $user;
@@ -155,17 +157,22 @@ class Passport
      */
     protected function getAccessTokenEntity($accessToken)
     {
+        $tokenArr = [];
+
         if ($this->model == self::$MODEL_REFRESH_TOKEN) {
             $tokenArr = $this->adapter->getToken($accessToken);
-        } else {
+        }
+       
+        if (empty($tokenArr)) {
             $tokenArr = [
                 'access_token' => $accessToken,
             ];
         }
-
-        if (empty($tokenArr)) {
-            $this->Auth();
+        
+        if (is_object($tokenArr) && $tokenArr instanceof AccessToken) {
+            return $tokenArr;
         }
+
         return new AccessToken($tokenArr);
     }
 
@@ -205,7 +212,7 @@ class Passport
      *
      * @return 
      */
-    public function getAccessTokenFromServer()
+    protected function getAccessTokenFromServer()
     {
         $accessToken = $this->adapter->getAccessToken();
         if (empty($accessToken)) {
@@ -274,7 +281,7 @@ class Passport
      */
     public function getUserInfo()
     {
-        return $this->userInfo;
+        return $this->checkLogin(false);
     }
 
     /**
@@ -299,21 +306,18 @@ class Passport
     protected function getTokenByCode($code = '')
     {
         if (empty($code)) {
+            throw new \Exception("passport empty code");
             $this->Auth();
         }
 
-        $accessToken = null;
-        try {
-            $token = $this->provider->getAccessToken('authorization_code', [
-                'code' => $code
-            ]);
-            $accessToken = $token->getToken();
-            // 服务器中记录对应的信息
-            $this->adapter->saveAccessToken($token->getToken());
-            $this->adapter->saveToken($token->getToken(), $token);
-        } catch (\Exception $e) {
-            $this->Auth();
-        }
+        $token = $this->provider->getAccessToken('authorization_code', [
+            'code' => $code
+        ]);
+        $accessToken = $token->getToken();
+
+        // 服务器中记录对应的信息
+        $this->adapter->saveAccessToken($token->getToken());
+        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + 6000 - time()));
 
         return $accessToken;
     }
@@ -322,23 +326,12 @@ class Passport
      * getUserInfoByToken 
      *
      * @param $token
-     * @param $model
      *
      * @return 
      */
-    protected function getUserInfoByToken($token, $model = 1)
+    protected function getUserInfoByToken($token)
     {
-        $user = null;
-
-        try {
-            $user = $this->provider->getResourceOwner($token);
-        } catch (\Exception $e) {
-            if ($e->getMessage() == 'invalid_token: Token verification failed' && $model == self::$MODEL_TOKEN) {
-                $this->Auth();
-            }
-        }
-
-        return $user;
+        return $this->provider->getResourceOwner($token);
     }
 
     /**
@@ -350,20 +343,12 @@ class Passport
      */
     protected function getTokenByRefreshToken($token)
     {
-        if (empty($code)) {
-            $this->Auth();
-        }
-        try {
-            $token = $this->provider->getAccessToken('refresh_token', [
-                'refresh_token' => $token->getRefreshToken()
-            ]);
-            $accessToken = $token->getToken();
-            // 服务器中记录对应的信息
-            $this->adapter->saveToken($token->getToken(), $token);
-            $this->adapter->saveAccessToken($token->getToken());
-        } catch (\Exception $e) {
-            $this->Auth();
-        }
-        return $accessToken;
+        $token = $this->provider->getAccessToken('refresh_token', [
+            'refresh_token' => $token->getRefreshToken()
+        ]);
+        // 服务器中记录对应的信息
+        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + 1000 - time()));
+        $this->adapter->saveAccessToken($token->getToken());
+        return $token;
     }
 }
