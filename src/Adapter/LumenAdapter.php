@@ -4,6 +4,7 @@ namespace Stevenmaguire\OAuth2\Client\Adapter;
 
 use Illuminate\Support\Facades\Cookie;
 use Cache;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Short description for LumenAdapter.php
@@ -22,7 +23,7 @@ class LumenAdapter extends AdapterAbstract
      */
     public function getAccessToken()
     {
-        return request()->cookie('token');
+        return request()->bearerToken();
     }
 
     /**
@@ -30,7 +31,11 @@ class LumenAdapter extends AdapterAbstract
      */
     public function saveAccessToken($accessToken = '')
     {
-        Cookie::queue('token', $accessToken);
+        try {
+            Cookie::queue('token', $accessToken);
+        } catch (\Exception $e) {
+            $this->log($e->getMessage());
+        }
     }
 
     /**
@@ -38,7 +43,7 @@ class LumenAdapter extends AdapterAbstract
      */
     public function getToken($accessToken = '')
     {
-        return Cache::get($accessToken);
+        return @json_decode(Cache::get($accessToken), JSON_OBJECT_AS_ARRAY);
     }
 
     /**
@@ -54,7 +59,7 @@ class LumenAdapter extends AdapterAbstract
      */
     public function getCode()
     {
-        return \request('code');
+        return request()->get('code');
     }
 
     /**
@@ -62,5 +67,6 @@ class LumenAdapter extends AdapterAbstract
      */
     public function log($e)
     {
+        Log::error($e->getMessage());
     }
 }
