@@ -16,11 +16,13 @@ composer require yangze/oauth2-keycloak
 
 ```php
 $passport = Passport::init([
-    'authServerUrl'         => 'http://127.0.0.1:8080/auth',
-    'realm'                 => 'xxxx',
-    'clientId'              => 'backend',
-    'clientSecret'          => 'xxxxx',
-    'redirectUri'           => 'http://127.0.0.1:8003/auto',
+    'authServerUrl' => 'http://127.0.0.1:8080/auth',
+    'realm'         => 'xxxx',
+    'clientId'      => 'backend',
+    'clientSecret'  => 'xxxxx',
+    'redirectUri'   => 'http://127.0.0.1:8003/auto',
+    'periodNoCheck' => 3600,
+    'periodCheck'   => 180,
 ]);
 ```
 

@@ -6,6 +6,7 @@ use League\OAuth2\Client\Token\AccessToken;
 use Stevenmaguire\OAuth2\Client\Adapter\AdapterAbstract;
 use Stevenmaguire\OAuth2\Client\Adapter\DefaultAdapter;
 use Stevenmaguire\OAuth2\Client\Provider\Keycloak;
+use Stevenmaguire\OAuth2\Client\Provider\KeycloakResourceOwner;
 
 /**
  *  Passport
@@ -56,6 +57,12 @@ class Passport
 
 
     /**
+     * config
+     */
+    private $config;
+
+
+    /**
      * __construct 
      *
      * @param $config
@@ -64,6 +71,7 @@ class Passport
      * @return 
      */
     private function __construct($config = [], AdapterAbstract $adapter = null, $model = 2){
+        $this->config = $config;;
         $this->provider  = new Keycloak($config);
         $this->adapter = empty($adapter) ? new DefaultAdapter : $adapter;
         $this->model = $model;
@@ -128,12 +136,21 @@ class Passport
         $user = null;
         try {
             $this->accessToken = $accessToken = $this->getAccessTokenFromServer();
-            $this->token = $token = $this->getAccessTokenEntity($accessToken);
 
-            if ($this->model == self::$MODEL_REFRESH_TOKEN && $token->hasExpired()) {
-                $this->token = $token = $this->getTokenByRefreshToken($token);
+            $userInfo = $this->parseToken($this->accessToken);
+
+            if (!empty($userInfo)) {
+                $user = $userInfo;
+            } else {
+                $this->token = $token = $this->getAccessTokenEntity($accessToken);
+
+                if ($this->model == self::$MODEL_REFRESH_TOKEN && $token->hasExpired()) {
+                    $this->token = $token = $this->getTokenByRefreshToken($token);
+                }
+                $user = $this->getUserInfoByToken($token);
+
             }
-            $user = $this->getUserInfoByToken($token);
+
         } catch (\Exception $e) {
             $this->adapter->log($e);
         }
@@ -350,5 +367,69 @@ class Passport
         $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + 1000 - time()));
         $this->adapter->saveAccessToken($token->getToken());
         return $token;
+    }
+
+    /**
+     * parseToken 
+     *
+     * @param $accessToken
+     *
+     * @return 
+     */
+    protected function parseToken($accessToken = '') 
+    {
+        $accessTokenArr = explode('.', $accessToken);
+        if (count($accessTokenArr) != 3) {
+            throw new \Exception("error token");
+        }
+
+        $userInfo = @json_decode(base64_decode($accessTokenArr[1]), true);
+        
+        if (empty($userInfo)) {
+            throw new \Exception("empty userinfo");
+        }
+
+        if (!$this->checkPes($userInfo)) {
+            return null;
+        }
+
+        $disabkeKey = ['exp', 'iat', 'auth_time', 'jti', 'iss', 'aud', 'typ', 'azp', 'session_state', 'acr', 'resp', 'scope'];
+        foreach($disabkeKey as $key) {
+            if (isset($userInfo[$key])) {
+                unset($userInfo[$key]);
+            }
+        }
+
+        return new KeycloakResourceOwner($userInfo);
+    }
+
+    /**
+     * checkPes 
+     *
+     * @param $userInfo
+     *
+     * @return 
+     */
+    protected function checkPes($userInfo = [])
+    {
+        if (!isset($this->config['periodNoCheck']) || !isset($this->config['periodCheck'])) {
+            return false;
+        }
+
+        if (time() > $userInfo['exp'] || time() < $userInfo['iat']) {
+            return false;
+        }
+
+        if ($userInfo['iat'] <= 0 || $this->config['periodCheck'] <= 0) {
+            return false;
+        }
+
+        $timeDiff = (time() - $userInfo['iat']) % ($this->config['periodNoCheck'] + $this->config['periodCheck']);
+
+        if ($timeDiff > $this->config['periodNoCheck']) {
+            return false;
+        }
+
+        return true;
     }
 }
