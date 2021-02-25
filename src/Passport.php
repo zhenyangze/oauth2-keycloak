@@ -2,6 +2,7 @@
 
 namespace Stevenmaguire\OAuth2\Client;
 
+use Firebase\JWT\JWT;
 use League\OAuth2\Client\Token\AccessToken;
 use Stevenmaguire\OAuth2\Client\Adapter\AdapterAbstract;
 use Stevenmaguire\OAuth2\Client\Adapter\DefaultAdapter;
@@ -383,7 +384,7 @@ class Passport
             throw new \Exception("error token");
         }
 
-        $userInfo = @json_decode(base64_decode($accessTokenArr[1]), true);
+        $userInfo = @json_decode(JWT::urlsafeB64Decode($accessTokenArr[1]), true);
         
         if (empty($userInfo)) {
             throw new \Exception("empty userinfo");
