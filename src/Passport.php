@@ -425,6 +425,10 @@ class Passport
             return false;
         }
 
+        if ($this->config['periodNoCheck'] <= 0 || $this->config['periodCheck'] <= 0) {
+            return false;
+        }
+
         $timeDiff = (time() - $userInfo['iat']) % ($this->config['periodNoCheck'] + $this->config['periodCheck']);
 
         if ($timeDiff > $this->config['periodNoCheck']) {
