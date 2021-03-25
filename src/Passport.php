@@ -157,6 +157,7 @@ class Passport
         }
 
         if (empty($user) && $autoJump){
+            $this->clearRecord();
             $this->Auth();
         } else if (empty($user) && !$autoJump) {
             return null;
@@ -325,7 +326,6 @@ class Passport
     {
         if (empty($code)) {
             throw new \Exception("passport empty code");
-            $this->Auth();
         }
 
         $token = $this->provider->getAccessToken('authorization_code', [
