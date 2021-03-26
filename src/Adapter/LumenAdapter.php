@@ -67,6 +67,10 @@ class LumenAdapter extends AdapterAbstract
      */
     public function log($e)
     {
-        Log::error($e->getMessage());
+        if ($e instanceof \Exception) {
+            Log::error($e->getMessage());
+        } else if (is_string($e)) {
+            Log::error($e);
+        }
     }
 }

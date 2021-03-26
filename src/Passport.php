@@ -62,6 +62,8 @@ class Passport
      */
     private $config;
 
+    public $idleTime = 3600;
+
 
     /**
      * __construct 
@@ -76,6 +78,10 @@ class Passport
         $this->provider  = new Keycloak($config);
         $this->adapter = empty($adapter) ? new DefaultAdapter : $adapter;
         $this->model = $model;
+
+        if (isset($this->config['idleTime']) && $this->config['idleTime'] > 0) {
+            $this->idleTime = $this->config['idleTime'];
+        }
         /*$this->provider  = new Keycloak([
             'authServerUrl' => 'http://127.0.0.1:8080/auth',
             'realm'         => 'real-demo',
@@ -335,7 +341,7 @@ class Passport
 
         // 服务器中记录对应的信息
         $this->adapter->saveAccessToken($token->getToken());
-        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + 6000 - time()));
+        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
 
         return $accessToken;
     }
@@ -365,7 +371,7 @@ class Passport
             'refresh_token' => $token->getRefreshToken()
         ]);
         // 服务器中记录对应的信息
-        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + 1000 - time()));
+        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
         $this->adapter->saveAccessToken($token->getToken());
         return $token;
     }
