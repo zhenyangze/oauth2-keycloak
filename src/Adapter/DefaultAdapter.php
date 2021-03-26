@@ -25,7 +25,7 @@ class DefaultAdapter extends AdapterAbstract
     /**
      * {@inheritDoc}
      */
-    public function saveAccessToken($accessToken = '')
+    public function saveAccessToken($accessToken = '', $time = 3600)
     {
         setcookie('token', $accessToken, time() + 3600 * 12, '/');
     }

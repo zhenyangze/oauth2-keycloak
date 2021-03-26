@@ -28,7 +28,7 @@ abstract class AdapterAbstract
      *
      * @return 
      */
-    abstract public function saveAccessToken($accessToken = '');
+    abstract public function saveAccessToken($accessToken = '', $time = 3600);
 
     /**
      * getToken 

@@ -340,7 +340,7 @@ class Passport
         $accessToken = $token->getToken();
 
         // 服务器中记录对应的信息
-        $this->adapter->saveAccessToken($token->getToken());
+        $this->adapter->saveAccessToken($token->getToken(), ($token->getExpires() + $this->idleTime - time()));
         $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
 
         return $accessToken;
@@ -372,7 +372,7 @@ class Passport
         ]);
         // 服务器中记录对应的信息
         $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
-        $this->adapter->saveAccessToken($token->getToken());
+        $this->adapter->saveAccessToken($token->getToken(), ($token->getExpires() + $this->idleTime - time()));
         return $token;
     }
 
