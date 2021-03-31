@@ -28,6 +28,7 @@ class CodeIgniterAdapter extends AdapterAbstract
     public function saveAccessToken($accessToken = '', $time = 3600)
     {
         setcookie('token', $accessToken, time() + $time, '/');
+        setcookie('SameSite', "None", time() + $time, '/');
     }
 
     /**

@@ -28,6 +28,7 @@ class DefaultAdapter extends AdapterAbstract
     public function saveAccessToken($accessToken = '', $time = 3600)
     {
         setcookie('token', $accessToken, time() + 3600 * 12, '/');
+        setcookie('SameSite', "None", time() + 3600 * 12, '/');
     }
 
     /**
