@@ -30,7 +30,6 @@ class CodeIgniterAdapter extends AdapterAbstract
         setcookie('token', $accessToken, [
             'path' => '/',
             'expires' => time() + $time,
-            'SameSite' => 'None',
         ]);
     }
 
