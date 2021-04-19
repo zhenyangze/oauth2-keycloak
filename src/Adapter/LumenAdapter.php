@@ -31,11 +31,9 @@ class LumenAdapter extends AdapterAbstract
      */
     public function saveAccessToken($accessToken = '', $time = 60)
     {
-        try {
-            Cookie::queue('token', $accessToken, $time);
-        } catch (\Exception $e) {
-            $this->log($e->getMessage());
-        }
+        request()->headers->add([
+            'New-Token' => $accessToken,
+        ]);
     }
 
     /**
