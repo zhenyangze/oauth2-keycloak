@@ -151,11 +151,10 @@ class Passport
             } else {
                 $this->token = $token = $this->getAccessTokenEntity($accessToken);
 
-                if ($this->model == self::$MODEL_REFRESH_TOKEN && $token->hasExpired()) {
+                if ($this->model == self::$MODEL_REFRESH_TOKEN && !empty($token->getExpires()) && $token->hasExpired()) {
                     $this->token = $token = $this->getTokenByRefreshToken($token);
                 }
                 $user = $this->getUserInfoByToken($token);
-
             }
 
         } catch (\Exception $e) {
