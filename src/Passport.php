@@ -406,7 +406,7 @@ class Passport
             }
         }
 
-        return new KeycloakResourceOwner($userInfo);
+        return new KeycloakResourceOwner($userInfo, $accessToken);
     }
 
     /**

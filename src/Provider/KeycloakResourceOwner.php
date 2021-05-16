@@ -2,8 +2,12 @@
 
 namespace Stevenmaguire\OAuth2\Client\Provider;
 
+use Firebase\JWT\JWT;
 use League\OAuth2\Client\Provider\ResourceOwnerInterface;
 
+/**
+ * KeycloakResourceOwner
+ */
 class KeycloakResourceOwner implements ResourceOwnerInterface
 {
     /**
@@ -13,14 +17,40 @@ class KeycloakResourceOwner implements ResourceOwnerInterface
      */
     protected $response;
 
+    protected $tokenInfo;
+
     /**
      * Creates new resource owner.
      *
      * @param array  $response
      */
-    public function __construct(array $response = array())
+    public function __construct(array $response = array(), $token = null)
     {
         $this->response = $response;
+
+        $tokenInfo = $this->parseToken($token);
+
+        $this->tokenInfo = empty($tokenInfo) ? $response : $tokenInfo;
+    }
+
+    /**
+     * parseToken 
+     *
+     * @param $accessToken
+     *
+     * @return 
+     */
+    protected function parseToken($accessToken = null) 
+    {
+        if (empty($accessToken)) {
+            return [];
+        }
+        $accessTokenArr = explode('.', $accessToken);
+        if (count($accessTokenArr) != 3) {
+            return [];
+        }
+
+        return @json_decode(JWT::urlsafeB64Decode($accessTokenArr[1]), true);
     }
 
     /**
@@ -63,11 +93,138 @@ class KeycloakResourceOwner implements ResourceOwnerInterface
         return $this->response;
     }
 
-    public function getAttr($key = '')
+    /**
+     * getAttr 
+     *
+     * @param $key string
+     * @param $type string
+     *
+     * @return 
+     */
+    public function getAttr($key = '', $type = 'response')
     {
         if (empty($key)) {
             return null;
         }
-        return isset($this->response[$key]) ? $this->response[$key] : null;
+        return isset($this->$type[$key]) ? $this->$type[$key] : null;
+    }
+
+    /**
+     * getCurrentClient 
+     *
+     * @return 
+     */
+    public function getCurrentClientId() {
+        return $this->getAttr('azp', 'tokenInfo');
+    }
+
+    /**
+     * getClients 
+     *
+     * @return array
+     */
+    public function getClients()
+    {
+        return (array)$this->getAttr('aud', 'tokenInfo');
+    }
+
+    /**
+     * getResources 
+     *
+     * @param $type 
+     * @return 
+     */
+    public function getResources($type = '')
+    {
+        return null;
+    }
+
+    /**
+     * getRoles 
+     *
+     * @param $clientId string
+     *
+     * @return 
+     */
+    public function getRoles($clientId = null)
+    {
+        if (empty($clientId)) {
+            $clientId = $this->getCurrentClientId();
+        }
+        $resourceList = $this->getAttr('resource_access', 'tokenInfo');
+        if (isset($resourceList[$clientId]) && isset($resourceList[$clientId]['roles'])) {
+            return $resourceList[$clientId]['roles'];
+        }
+
+        return [];
+    }
+
+    /**
+     * getPermissions 
+     *
+     * @return 
+     */
+    public function getPermissions()
+    {
+        return null;
+    }
+
+    /**
+     * can do with permission
+     *
+     * @param $permission
+     *
+     * @return 
+     */
+    public function can($permission = '')
+    {
+        return true;
+    }
+
+    /**
+     * cannot do with permission
+     *
+     * @param $permission
+     *
+     * @return 
+     */
+    public function cannot($permission = '')
+    {
+
+    }
+
+    /**
+     * hasRole 
+     *
+     * @param $role string
+     * @param $clientId string
+     *
+     * @return 
+     */
+    public function hasRole($role, $clientId = null)
+    {
+        if (empty($clientId)) {
+            $clientId = $this->getCurrentClientId();
+        }
+
+        return in_array($role, $this->getRoles($clientId));
+    }
+
+    /**
+     * inRoles 
+     *
+     * @param $rolesList array
+     * @param $clientId string
+     *
+     * @return 
+     */
+    public function inRoles($rolesList, $clientId = null)
+    {
+        if (empty($clientId)) {
+            $clientId = $this->getCurrentClientId();
+        }
+        $clientRoleList = $this->getRoles($clientId);
+
+        return !empty(array_intersect($rolesList, $clientRoleList));
     }
 }

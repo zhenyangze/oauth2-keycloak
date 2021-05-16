@@ -214,7 +214,7 @@ class Keycloak extends AbstractProvider
      */
     protected function createResourceOwner(array $response, AccessToken $token)
     {
-        return new KeycloakResourceOwner($response);
+        return new KeycloakResourceOwner($response, $token->getToken());
     }
 
     /**
