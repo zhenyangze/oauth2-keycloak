@@ -8,6 +8,7 @@ use Stevenmaguire\OAuth2\Client\Adapter\AdapterAbstract;
 use Stevenmaguire\OAuth2\Client\Adapter\DefaultAdapter;
 use Stevenmaguire\OAuth2\Client\Provider\Keycloak;
 use Stevenmaguire\OAuth2\Client\Provider\KeycloakResourceOwner;
+use Stevenmaguire\OAuth2\Grant\Ticket;
 
 /**
  *  Passport
@@ -338,9 +339,7 @@ class Passport
         ]);
         $accessToken = $token->getToken();
 
-        // 服务器中记录对应的信息
-        $this->adapter->saveAccessToken($token->getToken(), ($token->getExpires() + $this->idleTime - time()));
-        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
+        $this->saveToken($token);
 
         return $accessToken;
     }
@@ -369,9 +368,44 @@ class Passport
         $token = $this->provider->getAccessToken('refresh_token', [
             'refresh_token' => $token->getRefreshToken()
         ]);
-        // 服务器中记录对应的信息
-        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
+        $this->saveToken($token);
+        return $token;
+    }
+
+    /**
+     * saveToken 
+     *
+     * @param $token
+     *
+     * @return 
+     */
+    protected function saveToken($token = null)
+    {
+        if (!($token instanceof AccessToken)) {
+            return;
+        }
         $this->adapter->saveAccessToken($token->getToken(), ($token->getExpires() + $this->idleTime - time()));
+        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
+    }
+
+    /**
+     * getTicketTokenByToken 
+     *
+     * @param $token
+     *
+     * @return 
+     */
+    protected function getTicketTokenByToken($token)
+    {
+        try {
+            $token = $this->provider->getAccessToken((new Ticket), [
+                'token' => $token->getRefreshToken(),
+                'audience' => $this->provider->clientId,
+            ]);
+            $this->saveToken($token);
+        } catch (\Exception $e) {
+            $this->adapter->log($e);
+        }
         return $token;
     }
 

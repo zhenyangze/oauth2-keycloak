@@ -288,4 +288,51 @@ class Keycloak extends AbstractProvider
     {
         return (bool) $this->encryptionAlgorithm && $this->encryptionKey;
     }
+
+    /**
+     * Requests an access token using a specified grant and option set.
+     *
+     * @param  mixed $grant
+     * @param  array $options
+     * @return AccessToken
+     */
+    public function getAccessToken($grant, array $options = [])
+    {
+        $grant = $this->verifyGrant($grant);
+
+        $params = [
+            'client_id'     => $this->clientId,
+            'client_secret' => $this->clientSecret,
+            'redirect_uri'  => $this->redirectUri,
+        ];
+
+        $params   = $grant->prepareRequestParameters($params, $options);
+        $request  = $this->getAccessTokenRequest($params);
+        $response = $this->getParsedResponse($request);
+        $prepared = $this->prepareAccessTokenResponse($response);
+        $token    = $this->createAccessToken($prepared, $grant);
+
+        return $token;
+    }
+
+    /**
+     * Returns a prepared request for requesting an access token.
+     *
+     * @param array $params Query string parameters
+     * @return RequestInterface
+     */
+    protected function getAccessTokenRequest(array $params)
+    {
+        $method  = $this->getAccessTokenMethod();
+        $url     = $this->getAccessTokenUrl($params);
+        $options = $this->getAccessTokenOptions($params);
+
+        $token = null;
+        if (isset($params['token'])) {
+            $token = $params['token'];
+        }
+
+        return $this->createRequest($method, $url, $token, $options);
+    }
+
 }

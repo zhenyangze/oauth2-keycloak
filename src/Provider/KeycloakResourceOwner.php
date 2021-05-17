@@ -125,18 +125,18 @@ class KeycloakResourceOwner implements ResourceOwnerInterface
      */
     public function getClients()
     {
-        return (array)$this->getAttr('aud', 'tokenInfo');
+        return array_keys($this->getAttr('resource_access', 'tokenInfo'));
     }
 
     /**
      * getResources 
      *
-     * @param $type 
      * @return 
      */
-    public function getResources($type = '')
+    public function getResources()
     {
-        return null;
+        $permissionList = $this->getPermissions();
+        return array_column((array)$permissionList, 'rsid');
     }
 
     /**
@@ -166,7 +166,8 @@ class KeycloakResourceOwner implements ResourceOwnerInterface
      */
     public function getPermissions()
     {
-        return null;
+        $authorization = $this->getAttr('authorization', 'tokenInfo');
+        return isset($authorization['permissions']) ? $authorization['permissions'] : [];
     }
 
     /**
@@ -176,9 +177,24 @@ class KeycloakResourceOwner implements ResourceOwnerInterface
      *
      * @return 
      */
-    public function can($permission = '')
+    public function can($resource, $scope = null)
     {
-        return true;
+        $permissionList = $this->getPermissions();
+        foreach((array)$permissionList as $permission) {
+            if (!isset($permission['rsname'])) {
+                continue;
+            }
+
+            if (!empty($permission['scope']) && !in_array($scope, $permission['scope'])) {
+                continue;
+            }
+
+            if ($permission['rsname'] == $resource) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -188,9 +204,9 @@ class KeycloakResourceOwner implements ResourceOwnerInterface
      *
      * @return 
      */
-    public function cannot($permission = '')
+    public function cannot($resource, $scope = null)
     {
-
+        return !$this->can($resource, $scope);
     }
 
     /**
