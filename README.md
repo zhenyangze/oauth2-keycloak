@@ -1,4 +1,8 @@
-# A wrapper for the Keycloak OAuth 2.0 Client Provider
+# oauth2-keycloak
+
+A wrapper for the Keycloak OAuth 2.0 Client Provider, support Authentication and Authorization.
+
+
 
 ## Installation
 
@@ -10,9 +14,7 @@ composer require yangze/oauth2-keycloak
 
 
 
-## Usage
-
-### Init
+## Init
 
 ```php
 $passport = Passport::init([
@@ -25,6 +27,10 @@ $passport = Passport::init([
     'periodCheck'   => 180,
 ]);
 ```
+
+
+
+## Authentication
 
 ### Login
 
@@ -40,12 +46,33 @@ $user->toArray();
 $passport->logout();
 ```
 
-### Other Methd
+### Other Methds
 
 ```php
 $passport->getAccessToken(); // can save in client
 $passport->getToken(); // secret
 $passport->getAuthorizationUrl();
 $passport->getLogoutUrl();
+```
+
+
+
+## Authorization
+
+```php
+$user = $passport->checkAuth();
+
+// permission
+$user->can($resource, $scope);
+$user->cannot($resource, $scope);
+
+// list
+$user->getClients();
+$user->getPermissions();
+
+// role
+$user->getRoles();
+$user->hasRole($role);
+$user->inRoles($roleList);
 ```
 

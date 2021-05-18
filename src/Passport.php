@@ -6,6 +6,7 @@ use Firebase\JWT\JWT;
 use League\OAuth2\Client\Token\AccessToken;
 use Stevenmaguire\OAuth2\Client\Adapter\AdapterAbstract;
 use Stevenmaguire\OAuth2\Client\Adapter\DefaultAdapter;
+use Stevenmaguire\OAuth2\Client\Grant\Ticket;
 use Stevenmaguire\OAuth2\Client\Provider\Keycloak;
 use Stevenmaguire\OAuth2\Client\Provider\KeycloakResourceOwner;
 
@@ -132,7 +133,7 @@ class Passport
      *
      * @param $autoJump
      *
-     * @return 
+     * @return KeycloakResourceOwner
      */
     public function checkLogin($autoJump = true)
     {
@@ -170,6 +171,23 @@ class Passport
 
         $this->userInfo = $user;
         return $this->userInfo;
+    }
+
+    /**
+     * checkAuth 
+     *
+     * @param $autoJump
+     *
+     * @return KeycloakResourceOwner
+     */
+    public function checkAuth($autoJump = true)
+    {
+        $userInfo = $this->checkLogin($autoJump);
+        $token = $this->getToken();
+        if (empty($userInfo->getPermissions())) {
+            $token = $this->getTicketTokenByToken($token);
+        }
+        return new KeycloakResourceOwner($userInfo->toArray(), $token->getToken());
     }
 
     /**
@@ -338,9 +356,7 @@ class Passport
         ]);
         $accessToken = $token->getToken();
 
-        // 服务器中记录对应的信息
-        $this->adapter->saveAccessToken($token->getToken(), ($token->getExpires() + $this->idleTime - time()));
-        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
+        $this->saveToken($token);
 
         return $accessToken;
     }
@@ -369,9 +385,44 @@ class Passport
         $token = $this->provider->getAccessToken('refresh_token', [
             'refresh_token' => $token->getRefreshToken()
         ]);
-        // 服务器中记录对应的信息
-        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
+        $this->saveToken($token);
+        return $token;
+    }
+
+    /**
+     * saveToken 
+     *
+     * @param $token
+     *
+     * @return 
+     */
+    protected function saveToken($token = null)
+    {
+        if (!($token instanceof AccessToken)) {
+            return;
+        }
         $this->adapter->saveAccessToken($token->getToken(), ($token->getExpires() + $this->idleTime - time()));
+        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
+    }
+
+    /**
+     * getTicketTokenByToken 
+     *
+     * @param $token
+     *
+     * @return 
+     */
+    protected function getTicketTokenByToken($token)
+    {
+        try {
+            $token = $this->provider->getAccessToken((new Ticket), [
+                'token' => $token->getToken(),
+                'audience' => $this->provider->getClientId(),
+            ]);
+            $this->saveToken($token);
+        } catch (\Exception $e) {
+            $this->adapter->log($e);
+        }
         return $token;
     }
 
@@ -406,7 +457,7 @@ class Passport
             }
         }
 
-        return new KeycloakResourceOwner($userInfo);
+        return new KeycloakResourceOwner($userInfo, $accessToken);
     }
 
     /**
