@@ -335,4 +335,13 @@ class Keycloak extends AbstractProvider
         return $this->createRequest($method, $url, $token, $options);
     }
 
+    /**
+     * getClientId 
+     *
+     * @return 
+     */
+    public function getClientId()
+    {
+        return $this->clientId;
+    }
 }

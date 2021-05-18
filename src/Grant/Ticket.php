@@ -12,7 +12,7 @@
  * @link https://github.com/thephpleague/oauth2-client GitHub
  */
 
-namespace Stevenmaguire\OAuth2\Grant;
+namespace Stevenmaguire\OAuth2\Client\Grant;
 
 use League\OAuth2\Client\Grant\AbstractGrant;
 

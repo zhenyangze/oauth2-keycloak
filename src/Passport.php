@@ -6,9 +6,9 @@ use Firebase\JWT\JWT;
 use League\OAuth2\Client\Token\AccessToken;
 use Stevenmaguire\OAuth2\Client\Adapter\AdapterAbstract;
 use Stevenmaguire\OAuth2\Client\Adapter\DefaultAdapter;
+use Stevenmaguire\OAuth2\Client\Grant\Ticket;
 use Stevenmaguire\OAuth2\Client\Provider\Keycloak;
 use Stevenmaguire\OAuth2\Client\Provider\KeycloakResourceOwner;
-use Stevenmaguire\OAuth2\Grant\Ticket;
 
 /**
  *  Passport
@@ -184,10 +184,10 @@ class Passport
     {
         $userInfo = $this->checkLogin($autoJump);
         $token = $this->getToken();
-        if (!isset($userInfo['resource_access'])) {
+        if (empty($userInfo->getPermissions())) {
             $token = $this->getTicketTokenByToken($token);
         }
-        return new KeycloakResourceOwner($userInfo, $token->getToken());
+        return new KeycloakResourceOwner($userInfo->toArray(), $token->getToken());
     }
 
     /**
@@ -417,7 +417,7 @@ class Passport
         try {
             $token = $this->provider->getAccessToken((new Ticket), [
                 'token' => $token->getRefreshToken(),
-                'audience' => $this->provider->clientId,
+                'audience' => $this->provider->getClientId(),
             ]);
             $this->saveToken($token);
         } catch (\Exception $e) {
