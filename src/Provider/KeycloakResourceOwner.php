@@ -185,7 +185,7 @@ class KeycloakResourceOwner implements ResourceOwnerInterface
                 continue;
             }
 
-            if (!empty($permission['scope']) && !in_array($scope, $permission['scope'])) {
+            if (!empty($permission['scopes']) && (empty($scope) || !in_array($scope, $permission['scopes']))) {
                 continue;
             }
 

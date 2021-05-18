@@ -133,7 +133,7 @@ class Passport
      *
      * @param $autoJump
      *
-     * @return 
+     * @return KeycloakResourceOwner
      */
     public function checkLogin($autoJump = true)
     {
@@ -174,13 +174,13 @@ class Passport
     }
 
     /**
-     * initAuth 
+     * checkAuth 
      *
      * @param $autoJump
      *
-     * @return 
+     * @return KeycloakResourceOwner
      */
-    public function initAuth($autoJump = true)
+    public function checkAuth($autoJump = true)
     {
         $userInfo = $this->checkLogin($autoJump);
         $token = $this->getToken();
