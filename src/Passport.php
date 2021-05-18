@@ -174,6 +174,23 @@ class Passport
     }
 
     /**
+     * initAuth 
+     *
+     * @param $autoJump
+     *
+     * @return 
+     */
+    public function initAuth($autoJump = true)
+    {
+        $userInfo = $this->checkLogin($autoJump);
+        $token = $this->getToken();
+        if (!isset($userInfo['resource_access'])) {
+            $token = $this->getTicketTokenByToken($token);
+        }
+        return new KeycloakResourceOwner($userInfo, $token->getToken());
+    }
+
+    /**
      * getAccessTokenEntity 
      *
      * @param $accessToken
