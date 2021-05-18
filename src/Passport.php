@@ -416,7 +416,7 @@ class Passport
     {
         try {
             $token = $this->provider->getAccessToken((new Ticket), [
-                'token' => $token->getRefreshToken(),
+                'token' => $token->getToken(),
                 'audience' => $this->provider->getClientId(),
             ]);
             $this->saveToken($token);
