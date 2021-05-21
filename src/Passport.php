@@ -63,8 +63,20 @@ class Passport
      */
     private $config;
 
+    /**
+     * idleTime
+     */
     public $idleTime = 3600;
 
+    /**
+     * lifespanRatio
+     */
+    public $lifespanRatio = 0.834;
+
+    /**
+     * expired
+     */
+    protected $expired = true;
 
     /**
      * __construct 
@@ -152,7 +164,7 @@ class Passport
             } else {
                 $this->token = $token = $this->getAccessTokenEntity($accessToken);
 
-                if ($this->model == self::$MODEL_REFRESH_TOKEN && !empty($token->getExpires()) && $token->hasExpired()) {
+                if ($this->model == self::$MODEL_REFRESH_TOKEN && !empty($token->getExpires()) && $this->expired) {
                     $this->token = $token = $this->getTokenByRefreshToken($token);
                 }
                 $user = $this->getUserInfoByToken($token);
@@ -491,6 +503,11 @@ class Passport
             return false;
         }
 
+        if ($this->model == self::$MODEL_REFRESH_TOKEN && time() > ( $userInfo['iat'] + ($userInfo['exp'] - $userInfo['iat']) * $this->lifespanRatio)) {
+            return false;
+        }
+
+        $this->expired = false;
         return true;
     }
 }
