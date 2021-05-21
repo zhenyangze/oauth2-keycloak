@@ -62,8 +62,20 @@ class Passport
      */
     private $config;
 
+    /**
+     * idleTime
+     */
     public $idleTime = 3600;
 
+    /**
+     * lifespanRatio
+     */
+    public $lifespanRatio = 0.834;
+
+    /**
+     * expired
+     */
+    protected $expired = true;
 
     /**
      * __construct 
@@ -132,7 +144,7 @@ class Passport
      *
      * @param $autoJump
      *
-     * @return 
+     * @return KeycloakResourceOwner
      */
     public function checkLogin($autoJump = true)
     {
@@ -143,15 +155,14 @@ class Passport
         $user = null;
         try {
             $this->accessToken = $accessToken = $this->getAccessTokenFromServer();
+            $this->token = $token = $this->getAccessTokenEntity($accessToken);
 
             $userInfo = $this->parseToken($this->accessToken);
 
             if (!empty($userInfo)) {
                 $user = $userInfo;
             } else {
-                $this->token = $token = $this->getAccessTokenEntity($accessToken);
-
-                if ($this->model == self::$MODEL_REFRESH_TOKEN && !empty($token->getExpires()) && $token->hasExpired()) {
+                if ($this->model == self::$MODEL_REFRESH_TOKEN && !empty($token->getExpires()) && $this->expired) {
                     $this->token = $token = $this->getTokenByRefreshToken($token);
                 }
                 $user = $this->getUserInfoByToken($token);
@@ -186,13 +197,13 @@ class Passport
         if ($this->model == self::$MODEL_REFRESH_TOKEN) {
             $tokenArr = $this->adapter->getToken($accessToken);
         }
-       
+
         if (empty($tokenArr)) {
             $tokenArr = [
                 'access_token' => $accessToken,
             ];
         }
-        
+
         if (is_object($tokenArr) && $tokenArr instanceof AccessToken) {
             return $tokenArr;
         }
@@ -260,6 +271,11 @@ class Passport
         exit;
     }
 
+    /**
+     * * clearRecord 
+     * *
+     * * @return 
+     * */
     protected function clearRecord()
     {
         $this->accessToken = '';
@@ -338,9 +354,7 @@ class Passport
         ]);
         $accessToken = $token->getToken();
 
-        // 服务器中记录对应的信息
-        $this->adapter->saveAccessToken($token->getToken(), ($token->getExpires() + $this->idleTime - time()));
-        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
+        $this->saveToken($token);
 
         return $accessToken;
     }
@@ -369,10 +383,24 @@ class Passport
         $token = $this->provider->getAccessToken('refresh_token', [
             'refresh_token' => $token->getRefreshToken()
         ]);
-        // 服务器中记录对应的信息
-        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
-        $this->adapter->saveAccessToken($token->getToken(), ($token->getExpires() + $this->idleTime - time()));
+        $this->saveToken($token);
         return $token;
+    }
+
+    /**
+     * saveToken 
+     *
+     * @param $token
+     *
+     * @return 
+     */
+    protected function saveToken($token = null)
+    {
+        if (!($token instanceof AccessToken)) {
+            return;
+        }
+        $this->adapter->saveAccessToken($token->getToken(), ($token->getExpires() + $this->idleTime - time()));
+        $this->adapter->saveToken($token->getToken(), $token->jsonSerialize(), ($token->getExpires() + $this->idleTime - time()));
     }
 
     /**
@@ -390,9 +418,13 @@ class Passport
         }
 
         $userInfo = @json_decode(JWT::urlsafeB64Decode($accessTokenArr[1]), true);
-        
+
         if (empty($userInfo)) {
             throw new \Exception("empty userinfo");
+        }
+
+        if ($this->isNeedRefresh($userInfo)) {
+            return null;
         }
 
         if (!$this->checkPes($userInfo)) {
@@ -441,5 +473,22 @@ class Passport
         }
 
         return true;
+    }
+
+    /**
+     * isNeedRefresh 
+     *
+     * @param $userInfo
+     *
+     * @return 
+     */
+    protected function isNeedRefresh($userInfo = [])
+    {
+        $this->expired = true;
+        if ($this->model == self::$MODEL_REFRESH_TOKEN && time() < ( $userInfo['iat'] + ($userInfo['exp'] - $userInfo['iat']) * $this->lifespanRatio)) {
+            $this->expired = false;
+        }
+
+        return $this->expired;
     }
 }
