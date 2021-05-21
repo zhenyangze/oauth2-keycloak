@@ -156,14 +156,13 @@ class Passport
         $user = null;
         try {
             $this->accessToken = $accessToken = $this->getAccessTokenFromServer();
+            $this->token = $token = $this->getAccessTokenEntity($accessToken);
 
             $userInfo = $this->parseToken($this->accessToken);
 
             if (!empty($userInfo)) {
                 $user = $userInfo;
             } else {
-                $this->token = $token = $this->getAccessTokenEntity($accessToken);
-
                 if ($this->model == self::$MODEL_REFRESH_TOKEN && !empty($token->getExpires()) && $this->expired) {
                     $this->token = $token = $this->getTokenByRefreshToken($token);
                 }
@@ -195,7 +194,7 @@ class Passport
     public function checkAuth($autoJump = true)
     {
         $userInfo = $this->checkLogin($autoJump);
-        $token = $this->getToken();
+        $token = $this->token;
         if (empty($userInfo->getPermissions())) {
             $token = $this->getTicketTokenByToken($token);
         }
@@ -216,13 +215,13 @@ class Passport
         if ($this->model == self::$MODEL_REFRESH_TOKEN) {
             $tokenArr = $this->adapter->getToken($accessToken);
         }
-       
+
         if (empty($tokenArr)) {
             $tokenArr = [
                 'access_token' => $accessToken,
             ];
         }
-        
+
         if (is_object($tokenArr) && $tokenArr instanceof AccessToken) {
             return $tokenArr;
         }
@@ -290,6 +289,11 @@ class Passport
         exit;
     }
 
+    /**
+     * clearRecord 
+     *
+     * @return 
+     */
     protected function clearRecord()
     {
         $this->accessToken = '';
@@ -453,9 +457,13 @@ class Passport
         }
 
         $userInfo = @json_decode(JWT::urlsafeB64Decode($accessTokenArr[1]), true);
-        
+
         if (empty($userInfo)) {
             throw new \Exception("empty userinfo");
+        }
+
+        if ($this->isNeedRefresh($userInfo)) {
+            return null;
         }
 
         if (!$this->checkPes($userInfo)) {
@@ -503,11 +511,23 @@ class Passport
             return false;
         }
 
-        if ($this->model == self::$MODEL_REFRESH_TOKEN && time() > ( $userInfo['iat'] + ($userInfo['exp'] - $userInfo['iat']) * $this->lifespanRatio)) {
-            return false;
+        return true;
+    }
+
+    /**
+     * isNeedRefresh 
+     *
+     * @param $userInfo
+     *
+     * @return 
+     */
+    protected function isNeedRefresh($userInfo = [])
+    {
+        $this->expired = true;
+        if ($this->model == self::$MODEL_REFRESH_TOKEN && time() < ( $userInfo['iat'] + ($userInfo['exp'] - $userInfo['iat']) * $this->lifespanRatio)) {
+            $this->expired = false;
         }
 
-        $this->expired = false;
-        return true;
+        return $this->expired;
     }
 }
