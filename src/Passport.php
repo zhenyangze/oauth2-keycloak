@@ -194,7 +194,7 @@ class Passport
     public function checkAuth($autoJump = true)
     {
         $userInfo = $this->checkLogin($autoJump);
-        $token = $this->token;
+        $token = $this->getAccessTokenEntity($this->accessToken);
         if (empty($userInfo->getPermissions())) {
             $token = $this->getTicketTokenByToken($token);
         }
