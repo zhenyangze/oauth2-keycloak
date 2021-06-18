@@ -44,7 +44,9 @@ class CodeIgniterAdapter extends AdapterAbstract
 
         $CI = &get_instance();
         $CI->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
-        return $CI->cache->get($accessToken);
+        $cacheKey = "token_" . md5($accessToken);
+        $token = $CI->cache->get($accessToken);
+        return @json_decode($token, true);
     }
 
     /**
@@ -58,7 +60,8 @@ class CodeIgniterAdapter extends AdapterAbstract
 
         $CI = &get_instance();
         $CI->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
-        return $CI->cache->save($accessToken, $token, $time);
+        $cacheKey = "token_" . md5($accessToken);
+        return $CI->cache->save($cacheKey, json_encode($token), $time);
     }
 
     /**
