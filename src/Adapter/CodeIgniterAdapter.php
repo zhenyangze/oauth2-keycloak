@@ -45,7 +45,7 @@ class CodeIgniterAdapter extends AdapterAbstract
         $CI = &get_instance();
         $CI->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
         $cacheKey = "token_" . md5($accessToken);
-        $token = $CI->cache->get($accessToken);
+        $token = $CI->cache->get($cacheKey);
         return @json_decode($token, true);
     }
 
