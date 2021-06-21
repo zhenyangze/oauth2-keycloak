@@ -185,11 +185,11 @@ class KeycloakResourceOwner implements ResourceOwnerInterface
                 continue;
             }
 
-            if (!empty($permission['scopes']) && (empty($scope) || !in_array($scope, $permission['scopes']))) {
+            if (!empty($permission['scopes']) && !empty($scope) && !in_array($scope, $permission['scopes'])) {
                 continue;
             }
 
-            if ($permission['rsname'] == $resource) {
+            if (fnmatch($permission['rsname'], $resource)) {
                 return true;
             }
         }
