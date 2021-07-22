@@ -78,4 +78,35 @@ class CodeIgniterAdapter extends AdapterAbstract
     public function log($e)
     {
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getPermissionToken($clientId, $accessToken = '')
+    {
+        if (!function_exists('get_instance')) {
+            return '';
+        }
+
+        $CI = &get_instance();
+        $CI->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
+        $tokenKey = 'token_permission_' . md5($accessToken) . '_' . $clientId;
+        $token = $CI->cache->get($tokenKey);
+        return @json_decode($token, true);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function savePermissionToken($clientId, $accessToken = '', $token, $time = 3600)
+    {
+        if (!function_exists('get_instance')) {
+            return;
+        }
+
+        $CI = &get_instance();
+        $CI->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
+        $tokenKey = 'token_permission_' . md5($accessToken) . '_' . $clientId;
+        return $CI->cache->save($tokenKey, json_encode($token), $time);
+    }
 }

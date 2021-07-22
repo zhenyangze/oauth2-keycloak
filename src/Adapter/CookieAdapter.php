@@ -63,4 +63,20 @@ class CookieAdapter extends AdapterAbstract
     public function log($e)
     {
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getPermissionToken($clientId, $accessToken = '')
+    {
+        return ;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function savePermissionToken($clientId, $accessToken = '', $token, $time = 3600)
+    {
+        return ;
+    }
 }

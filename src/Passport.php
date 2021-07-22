@@ -188,10 +188,11 @@ class Passport
      * checkAuth 
      *
      * @param $autoJump
+     * @param $clientId
      *
      * @return KeycloakResourceOwner
      */
-    public function checkAuth($autoJump = true)
+    public function checkAuth($autoJump = true, $clientId = '')
     {
         $userInfo = $this->checkLogin($autoJump);
         $token = $this->getAccessTokenEntity($this->accessToken);
@@ -199,7 +200,7 @@ class Passport
             return null;
         }
         if (empty($userInfo->getPermissions())) {
-            $token = $this->getTicketTokenByToken($token);
+            $token = $this->getTicketTokenByToken($token, $clientId);
         }
         return new KeycloakResourceOwner($userInfo->toArray(), $token->getToken());
     }
@@ -428,21 +429,26 @@ class Passport
      * getTicketTokenByToken 
      *
      * @param $token
+     * @param $clientId
      *
      * @return 
      */
-    protected function getTicketTokenByToken($token)
+    protected function getTicketTokenByToken($token, $clientId = '')
     {
+        $permissionToken = $token;
         try {
-            $token = $this->provider->getAccessToken((new Ticket), [
-                'token' => $token->getToken(),
-                'audience' => $this->provider->getClientId(),
-            ]);
-            $this->saveToken($token);
+            $permissionToken = $this->adapter->getPermissionToken($clientId, $token);
+            if (empty($permissionToken)) {
+                $permissionToken = $this->provider->getAccessToken((new Ticket), [
+                    'token' => $token->getToken(),
+                    'audience' => empty($clientId) ? $this->provider->getClientId() : $clientId,
+                ]);
+                $this->adapter->savePermissionToken($clientId, $token, $permissionToken,  ($token->getExpires() + $this->idleTime - time()));
+            }
         } catch (\Exception $e) {
             $this->adapter->log($e);
         }
-        return $token;
+        return $permissionToken;
     }
 
     /**

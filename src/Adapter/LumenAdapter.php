@@ -2,8 +2,7 @@
 
 namespace Stevenmaguire\OAuth2\Client\Adapter;
 
-use Illuminate\Support\Facades\Cookie;
-use Cache;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -41,7 +40,8 @@ class LumenAdapter extends AdapterAbstract
      */
     public function getToken($accessToken = '')
     {
-        return @json_decode(Cache::get($accessToken), JSON_OBJECT_AS_ARRAY);
+        $tokenKey = 'token_' . md5($accessToken);
+        return @json_decode(Cache::get($tokenKey), JSON_OBJECT_AS_ARRAY);
     }
 
     /**
@@ -49,7 +49,8 @@ class LumenAdapter extends AdapterAbstract
      */
     public function saveToken($accessToken = '', $token, $time = 3600)
     {
-        Cache::put($accessToken, json_encode($token), $time);
+        $tokenKey = 'token_' . md5($accessToken);
+        Cache::put($tokenKey, json_encode($token), $time);
     }
 
     /**
@@ -70,5 +71,23 @@ class LumenAdapter extends AdapterAbstract
         } else if (is_string($e)) {
             Log::error($e);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getPermissionToken($clientId, $accessToken = '')
+    {
+        $tokenKey = 'token_permission_' . md5($accessToken) . '_' . $clientId;
+        return @json_decode(Cache::get($tokenKey), JSON_OBJECT_AS_ARRAY);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function savePermissionToken($clientId, $accessToken = '', $token, $time = 3600)
+    {
+        $tokenKey = 'token_permission_' . md5($accessToken) . '_' . $clientId;
+        Cache::put($tokenKey, json_encode($token), $time);
     }
 }

@@ -71,4 +71,28 @@ class DefaultAdapter extends AdapterAbstract
     public function log($e)
     {
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getPermissionToken($clientId, $accessToken = '')
+    {
+        if (!session_id()) {
+            session_start();
+        }
+        $sessionKey = 'token_permission_' . md5($accessToken) . '_' . $clientId;
+        return isset($_SESSION[$sessionKey]) ? @json_decode($_SESSION[$sessionKey], true) : ''; 
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function savePermissionToken($clientId, $accessToken = '', $token, $time = 3600)
+    {
+        if (!session_id()) {
+            session_start();
+        }
+        $sessionKey = 'token_permission_' . md5($accessToken) . '_' . $clientId;
+        $_SESSION[$sessionKey] = json_encode($token);
+    }
 }

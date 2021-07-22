@@ -50,6 +50,32 @@ abstract class AdapterAbstract
     abstract public function saveToken($accessToken = '', $token, $time = 3600);
 
     /**
+     * getPermissionToken 
+     *
+     * @param $clientId
+     * @param $accessToken
+     *
+     * @return 
+     */
+    public function getPermissionToken($clientId, $accessToken = '') {
+        return;
+    }
+
+    /**
+     * savePermissionToken 
+     *
+     * @param $clientId
+     * @param $accessToken
+     * @param $token
+     * @param $time
+     *
+     * @return 
+     */
+    public function savePermissionToken($clientId, $accessToken = '', $token, $time = 3600) {
+        return;
+    }
+
+    /**
      * getCode 
      *
      * @return 
