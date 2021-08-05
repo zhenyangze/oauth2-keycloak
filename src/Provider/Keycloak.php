@@ -10,6 +10,7 @@ use League\OAuth2\Client\Token\AccessToken;
 use League\OAuth2\Client\Tool\BearerAuthorizationTrait;
 use Psr\Http\Message\ResponseInterface;
 use Stevenmaguire\OAuth2\Client\Provider\Exception\EncryptionConfigurationException;
+use UnexpectedValueException;
 
 class Keycloak extends AbstractProvider
 {
@@ -199,6 +200,9 @@ class Keycloak extends AbstractProvider
      */
     protected function checkResponse(ResponseInterface $response, $data)
     {
+        if (!is_array($data)) {
+            throw new UnexpectedValueException((string)$data, 0);
+        }
         if (!empty($data['error'])) {
             $error = $data['error'].': '.$data['error_description'];
             throw new IdentityProviderException($error, 0, $data);
