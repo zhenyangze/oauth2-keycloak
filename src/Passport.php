@@ -443,9 +443,16 @@ class Passport
                     'token' => $token->getToken(),
                     'audience' => empty($clientId) ? $this->provider->getClientId() : $clientId,
                 ]);
-                $this->adapter->savePermissionToken($clientId, $token, $permissionToken, ($token->getExpires() + $this->idleTime - time()));
+                $this->adapter->savePermissionToken($clientId, $token, $permissionToken, ($permissionToken->getExpires() + $this->idleTime - time()));
+            }
+            if (is_array($permissionToken)) {
+                $permissionToken = new AccessToken($permissionToken);
+            }
+            if (!$permissionToken instanceof AccessToken) {
+                throw new \Exception("get invalid token");
             }
         } catch (\Exception $e) {
+            $permissionToken = $token;
             $this->adapter->log($e);
         }
         return $permissionToken;
