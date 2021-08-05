@@ -86,7 +86,8 @@ class Passport
      *
      * @return 
      */
-    private function __construct($config = [], AdapterAbstract $adapter = null, $model = 2){
+    private function __construct($config = [], AdapterAbstract $adapter = null, $model = 2)
+    {
         $this->config = $config;;
         $this->provider  = new Keycloak($config);
         $this->adapter = empty($adapter) ? new DefaultAdapter : $adapter;
@@ -102,8 +103,8 @@ class Passport
      *
      * @return 
      */
-    private function __clone(){
-
+    private function __clone()
+    {
     }
 
     /**
@@ -163,7 +164,7 @@ class Passport
             }
         } catch (PassportRuntimeException $e) {
             $this->adapter->log($e);
-            if (empty($user) && $autoJump){
+            if (empty($user) && $autoJump) {
                 $this->clearRecord();
                 $this->Auth();
             } else if (empty($user) && !$autoJump) {
@@ -377,7 +378,7 @@ class Passport
     protected function getTokenByRefreshToken($token)
     {
         $token = $this->callProviderMethod('getAccessToken', [
-            'refresh_token', 
+            'refresh_token',
             [
                 'refresh_token' => $token->getRefreshToken()
             ]
@@ -409,7 +410,7 @@ class Passport
      *
      * @return 
      */
-    protected function parseToken($accessToken = '') 
+    protected function parseToken($accessToken = '')
     {
         $accessTokenArr = explode('.', $accessToken);
         if (count($accessTokenArr) != 3) {
@@ -431,7 +432,7 @@ class Passport
         }
 
         $disabkeKey = ['exp', 'iat', 'auth_time', 'jti', 'iss', 'aud', 'typ', 'azp', 'session_state', 'acr', 'resp', 'scope'];
-        foreach($disabkeKey as $key) {
+        foreach ($disabkeKey as $key) {
             if (isset($userInfo[$key])) {
                 unset($userInfo[$key]);
             }
@@ -484,7 +485,7 @@ class Passport
     protected function isNeedRefresh($userInfo = [])
     {
         $this->expired = true;
-        if ($this->model == self::$MODEL_REFRESH_TOKEN && time() < ( $userInfo['iat'] + ($userInfo['exp'] - $userInfo['iat']) * $this->lifespanRatio)) {
+        if ($this->model == self::$MODEL_REFRESH_TOKEN && time() < ($userInfo['iat'] + ($userInfo['exp'] - $userInfo['iat']) * $this->lifespanRatio)) {
             $this->expired = false;
         }
 
@@ -499,7 +500,8 @@ class Passport
      *
      * @return 
      */
-    protected function callProviderMethod($method, $args = []) {
+    protected function callProviderMethod($method, $args = [])
+    {
         try {
             return call_user_func_array([$this->provider, $method], $args);
         } catch (\Exception $e) {
