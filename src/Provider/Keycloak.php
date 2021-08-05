@@ -309,6 +309,10 @@ class Keycloak extends AbstractProvider
         $params   = $grant->prepareRequestParameters($params, $options);
         $request  = $this->getAccessTokenRequest($params);
         $response = $this->getParsedResponse($request);
+        // need response array
+        if (!is_array($response)) {
+            throw new \Exception("the response from server is not array");
+        }
         $prepared = $this->prepareAccessTokenResponse($response);
         $token    = $this->createAccessToken($prepared, $grant);
 
