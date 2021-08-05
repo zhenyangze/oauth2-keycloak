@@ -9,6 +9,7 @@ use Stevenmaguire\OAuth2\Client\Adapter\DefaultAdapter;
 use Stevenmaguire\OAuth2\Client\Grant\Ticket;
 use Stevenmaguire\OAuth2\Client\Provider\Keycloak;
 use Stevenmaguire\OAuth2\Client\Provider\KeycloakResourceOwner;
+use Stevenmaguire\OAuth2\Client\Provider\Exception\PassportRuntimeException;
 
 /**
  *  Passport
@@ -86,7 +87,8 @@ class Passport
      *
      * @return 
      */
-    private function __construct($config = [], AdapterAbstract $adapter = null, $model = 2){
+    private function __construct($config = [], AdapterAbstract $adapter = null, $model = 2)
+    {
         $this->config = $config;;
         $this->provider  = new Keycloak($config);
         $this->adapter = empty($adapter) ? new DefaultAdapter : $adapter;
@@ -95,13 +97,6 @@ class Passport
         if (isset($this->config['idleTime']) && $this->config['idleTime'] > 0) {
             $this->idleTime = $this->config['idleTime'];
         }
-        /*$this->provider  = new Keycloak([
-            'authServerUrl' => 'http://127.0.0.1:8080/auth',
-            'realm'         => 'real-demo',
-            'clientId'      => 'backend',
-            'clientSecret'  => '9030c395-1ffa-44ad-99ba-e2aba9586822',
-            'redirectUri'   => 'http://127.0.0.1:8003/auth',
-        ]);*/
     }
 
     /**
@@ -109,8 +104,8 @@ class Passport
      *
      * @return 
      */
-    private function __clone(){
-
+    private function __clone()
+    {
     }
 
     /**
@@ -168,16 +163,14 @@ class Passport
                 }
                 $user = $this->getUserInfoByToken($token);
             }
-
-        } catch (\Exception $e) {
+        } catch (PassportRuntimeException $e) {
             $this->adapter->log($e);
-        }
-
-        if (empty($user) && $autoJump){
-            $this->clearRecord();
-            $this->Auth();
-        } else if (empty($user) && !$autoJump) {
-            return null;
+            if (empty($user) && $autoJump) {
+                $this->clearRecord();
+                $this->Auth();
+            } else if (empty($user) && !$autoJump) {
+                return null;
+            }
         }
 
         $this->userInfo = $user;
@@ -311,7 +304,7 @@ class Passport
      */
     public function getAuthorizationUrl()
     {
-        return $this->provider->getAuthorizationUrl();
+        return $this->callProviderMethod('getAuthorizationUrl');
     }
 
     /**
@@ -333,7 +326,7 @@ class Passport
      */
     public function getLogoutUrl()
     {
-        return $this->provider->getLogoutUrl();
+        return $this->callProviderMethod('getLogoutUrl');
     }
 
     /**
@@ -368,12 +361,16 @@ class Passport
     protected function getTokenByCode($code = '')
     {
         if (empty($code)) {
-            throw new \Exception("passport empty code");
+            throw new PassportRuntimeException("passport empty code");
         }
 
-        $token = $this->provider->getAccessToken('authorization_code', [
-            'code' => $code
+        $token = $this->callProviderMethod('getAccessToken', [
+            'authorization_code',
+            [
+                'code' => $code
+            ]
         ]);
+
         $accessToken = $token->getToken();
 
         $this->saveToken($token);
@@ -390,7 +387,7 @@ class Passport
      */
     protected function getUserInfoByToken($token)
     {
-        return $this->provider->getResourceOwner($token);
+        return $this->callProviderMethod('getResourceOwner', [$token]);
     }
 
     /**
@@ -402,8 +399,11 @@ class Passport
      */
     protected function getTokenByRefreshToken($token)
     {
-        $token = $this->provider->getAccessToken('refresh_token', [
-            'refresh_token' => $token->getRefreshToken()
+        $token = $this->callProviderMethod('getAccessToken', [
+            'refresh_token',
+            [
+                'refresh_token' => $token->getRefreshToken()
+            ]
         ]);
         $this->saveToken($token);
         return $token;
@@ -443,7 +443,7 @@ class Passport
                     'token' => $token->getToken(),
                     'audience' => empty($clientId) ? $this->provider->getClientId() : $clientId,
                 ]);
-                $this->adapter->savePermissionToken($clientId, $token, $permissionToken,  ($token->getExpires() + $this->idleTime - time()));
+                $this->adapter->savePermissionToken($clientId, $token, $permissionToken, ($token->getExpires() + $this->idleTime - time()));
             }
         } catch (\Exception $e) {
             $this->adapter->log($e);
@@ -458,17 +458,17 @@ class Passport
      *
      * @return 
      */
-    protected function parseToken($accessToken = '') 
+    protected function parseToken($accessToken = '')
     {
         $accessTokenArr = explode('.', $accessToken);
         if (count($accessTokenArr) != 3) {
-            throw new \Exception("error token");
+            throw new PassportRuntimeException("error token");
         }
 
         $userInfo = @json_decode(JWT::urlsafeB64Decode($accessTokenArr[1]), true);
 
         if (empty($userInfo)) {
-            throw new \Exception("empty userinfo");
+            throw new PassportRuntimeException("empty userinfo");
         }
 
         if ($this->isNeedRefresh($userInfo)) {
@@ -480,7 +480,7 @@ class Passport
         }
 
         $disabkeKey = ['exp', 'iat', 'auth_time', 'jti', 'iss', 'aud', 'typ', 'azp', 'session_state', 'acr', 'resp', 'scope'];
-        foreach($disabkeKey as $key) {
+        foreach ($disabkeKey as $key) {
             if (isset($userInfo[$key])) {
                 unset($userInfo[$key]);
             }
@@ -533,10 +533,27 @@ class Passport
     protected function isNeedRefresh($userInfo = [])
     {
         $this->expired = true;
-        if ($this->model == self::$MODEL_REFRESH_TOKEN && time() < ( $userInfo['iat'] + ($userInfo['exp'] - $userInfo['iat']) * $this->lifespanRatio)) {
+        if ($this->model == self::$MODEL_REFRESH_TOKEN && time() < ($userInfo['iat'] + ($userInfo['exp'] - $userInfo['iat']) * $this->lifespanRatio)) {
             $this->expired = false;
         }
 
         return $this->expired;
+    }
+
+    /**
+     * callProviderMethod 
+     *
+     * @param $method
+     * @param $args
+     *
+     * @return 
+     */
+    protected function callProviderMethod($method, $args = [])
+    {
+        try {
+            return call_user_func_array([$this->provider, $method], $args);
+        } catch (\Exception $e) {
+            throw new PassportRuntimeException($e->getMessage());
+        }
     }
 }
