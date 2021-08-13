@@ -310,11 +310,22 @@ class Passport
     /**
      * getUserInfo 
      *
+     * @params $type 1:access token, 2:user_info
+     *
      * @return 
      */
-    public function getUserInfo()
+    public function getUserInfo($type = 1)
     {
-        return $this->checkLogin(false);
+        switch($type) {
+        case 2:
+            $userInfo = $this->provider->getUserInfo($this->getAccessToken());
+            break;
+        default:
+            $userInfo = $this->checkLogin(false);
+            break;
+        }
+
+        return $userInfo;
     }
 
     /**

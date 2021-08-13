@@ -155,6 +155,17 @@ class Keycloak extends AbstractProvider
         return $this->getBaseUrlWithRealm() . '/protocol/openid-connect/logout';
     }
 
+
+    /**
+     * Get url to get user info
+     *
+     * @return string
+     */
+    private function getUserInfoUrl()
+    {
+        return $this->getBaseUrlWithRealm() . '/protocol/openid-connect/userinfo';
+    }
+
     /**
      * Creates base url from provider configuration.
      *
@@ -291,5 +302,28 @@ class Keycloak extends AbstractProvider
     public function usesEncryption()
     {
         return (bool) $this->encryptionAlgorithm && $this->encryptionKey;
+    }
+
+    /**
+     * getUserInfo 
+     *
+     * @param $accessToken
+     *
+     * @return 
+     */
+    public function getUserInfo($accessToken = '')
+    {
+        if (empty($accessToken)) {
+            return null;
+        }
+        $url = $this->getUserInfoUrl();
+        $options = [
+            'headers' => $this->getHeaders($accessToken),
+        ];
+        $request = $this->getRequest('GET', $url, $options);
+        $response = $this->getParsedResponse($request);
+        return $this->createResourceOwner($response, new AccessToken([
+            'access_token' => $accessToken
+        ]));
     }
 }
