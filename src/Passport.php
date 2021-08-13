@@ -8,7 +8,7 @@ use Stevenmaguire\OAuth2\Client\Adapter\DefaultAdapter;
 use Stevenmaguire\OAuth2\Client\Provider\Keycloak;
 use Stevenmaguire\OAuth2\Client\Provider\KeycloakResourceOwner;
 use Stevenmaguire\OAuth2\Client\Provider\Exception\PassportRuntimeException;
-use Stevenmaguire\OAuth2\Client\Provider\Token;
+use Stevenmaguire\OAuth2\Client\Provider\TokenUtil;
 
 /**
  *  Passport
@@ -420,8 +420,8 @@ class Passport
         $authUrl = $this->config['authServerUrl'] ?? '';
         $realm = $this->config['realm'] ?? '';
         try {
-            $userInfo = Token::parseToken($accessToken, $authUrl, $realm);
-        } catch (\Exception e) {
+            $userInfo = TokenUtil::parseToken($accessToken, $authUrl, $realm);
+        } catch (\Exception $e) {
             throw new PassportRuntimeException("parse token error");
         }
 

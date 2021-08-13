@@ -1,9 +1,10 @@
 <?php
 
-namespace Stevenmaguire\OAuth2\Client;
+namespace Stevenmaguire\OAuth2\Client\Provider;
 
 
 use Firebase\JWT\JWT;
+use GuzzleHttp\Client;
 
 /**
  * Short description for Token.php
@@ -27,16 +28,17 @@ class TokenUtil
     public static function parseToken($token = '', $authUrl = null, $realm = null)
     {
         if (empty($token) || empty($authUrl) || empty($realm)) {
-            return false;
+            return null;
         }
 
-        $certsUrl = sprintf('%s/auth/realms/%s/protocol/openid-connect/certs', $authServerUrl, $realm);
-        $client = new GuzzleHttp\Client();
+        //todo:need cache
+        $certsUrl = sprintf('%s/realms/%s/protocol/openid-connect/certs', $authUrl, $realm);
+        $client = new Client();
         $res = $client->request('GET', $certsUrl);
         $result = $res->getBody();
         $certInfo = @json_decode($result, true);
         if (empty($certInfo) || !isset($certInfo['keys'])) {
-            return false;
+            return null;
         }
 
         $certKeyInfo = reset($certInfo['keys']);
@@ -44,7 +46,7 @@ class TokenUtil
         $algList = explode(',', $certKeyInfo['alg']);
         $publicKey = reset($certKeyInfo['x5c']);
         if (empty($publicKey)) {
-            return false;
+            return null;
         }
 
         $publicKey = <<<EOF
@@ -52,6 +54,23 @@ class TokenUtil
 $publicKey
 -----END CERTIFICATE-----
 EOF;
-        return JWT::decode($token, $key, $algList);
+        try {
+            $payload = JWT::decode($token, $publicKey, $algList);
+            return self::object2array($payload);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * object2array 
+     *
+     * @param $object
+     *
+     * @return 
+     */
+    protected static function object2array($object = null)
+    {
+        return json_decode(json_encode($object), true);
     }
 }
