@@ -2,7 +2,6 @@
 
 namespace Stevenmaguire\OAuth2\Client;
 
-use Firebase\JWT\JWT;
 use League\OAuth2\Client\Token\AccessToken;
 use Stevenmaguire\OAuth2\Client\Adapter\AdapterAbstract;
 use Stevenmaguire\OAuth2\Client\Adapter\DefaultAdapter;
@@ -10,6 +9,7 @@ use Stevenmaguire\OAuth2\Client\Grant\Ticket;
 use Stevenmaguire\OAuth2\Client\Provider\Keycloak;
 use Stevenmaguire\OAuth2\Client\Provider\KeycloakResourceOwner;
 use Stevenmaguire\OAuth2\Client\Provider\Exception\PassportRuntimeException;
+use Stevenmaguire\OAuth2\Client\Provider\TokenUtil;
 
 /**
  *  Passport
@@ -332,11 +332,22 @@ class Passport
     /**
      * getUserInfo 
      *
+     * @params $type 1:access token, 2:user_info
+     *
      * @return 
      */
-    public function getUserInfo()
+    public function getUserInfo($type = 1)
     {
-        return $this->checkLogin(false);
+        switch($type) {
+        case 2:
+            $userInfo = $this->provider->getUserInfo($this->getAccessToken());
+            break;
+        default:
+            $userInfo = $this->checkLogin(false);
+            break;
+        }
+
+        return $userInfo;
     }
 
     /**
@@ -463,16 +474,22 @@ class Passport
      *
      * @param $accessToken
      *
-     * @return 
+     * @return array
      */
-    protected function parseToken($accessToken = '')
+    public function parseToken($accessToken = '')
     {
         $accessTokenArr = explode('.', $accessToken);
         if (count($accessTokenArr) != 3) {
             throw new PassportRuntimeException("error token");
         }
 
-        $userInfo = @json_decode(JWT::urlsafeB64Decode($accessTokenArr[1]), true);
+        $authUrl = $this->config['authServerUrl'] ?? '';
+        $realm = $this->config['realm'] ?? '';
+        try {
+            $userInfo = TokenUtil::parseToken($accessToken, $authUrl, $realm);
+        } catch (\Exception $e) {
+            throw new PassportRuntimeException("parse token error");
+        }
 
         if (empty($userInfo)) {
             throw new PassportRuntimeException("empty userinfo");

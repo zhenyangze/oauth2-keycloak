@@ -10,6 +10,7 @@ use League\OAuth2\Client\Token\AccessToken;
 use League\OAuth2\Client\Tool\BearerAuthorizationTrait;
 use Psr\Http\Message\ResponseInterface;
 use Stevenmaguire\OAuth2\Client\Provider\Exception\EncryptionConfigurationException;
+use UnexpectedValueException;
 
 class Keycloak extends AbstractProvider
 {
@@ -154,6 +155,17 @@ class Keycloak extends AbstractProvider
         return $this->getBaseUrlWithRealm() . '/protocol/openid-connect/logout';
     }
 
+
+    /**
+     * Get url to get user info
+     *
+     * @return string
+     */
+    private function getUserInfoUrl()
+    {
+        return $this->getBaseUrlWithRealm() . '/protocol/openid-connect/userinfo';
+    }
+
     /**
      * Creates base url from provider configuration.
      *
@@ -199,6 +211,9 @@ class Keycloak extends AbstractProvider
      */
     protected function checkResponse(ResponseInterface $response, $data)
     {
+        if (!is_array($data)) {
+            throw new UnexpectedValueException((string)$data, 0);
+        }
         if (!empty($data['error'])) {
             $error = $data['error'].': '.$data['error_description'];
             throw new IdentityProviderException($error, 0, $data);
@@ -347,5 +362,28 @@ class Keycloak extends AbstractProvider
     public function getClientId()
     {
         return $this->clientId;
+    }
+
+    /**
+     * getUserInfo 
+     *
+     * @param $accessToken
+     *
+     * @return 
+     */
+    public function getUserInfo($accessToken = '')
+    {
+        if (empty($accessToken)) {
+            return null;
+        }
+        $url = $this->getUserInfoUrl();
+        $options = [
+            'headers' => $this->getHeaders($accessToken),
+        ];
+        $request = $this->getRequest('GET', $url, $options);
+        $response = $this->getParsedResponse($request);
+        return $this->createResourceOwner($response, new AccessToken([
+            'access_token' => $accessToken
+        ]));
     }
 }
