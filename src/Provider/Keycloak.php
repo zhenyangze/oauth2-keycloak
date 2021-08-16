@@ -381,9 +381,9 @@ class Keycloak extends AbstractProvider
             'headers' => $this->getHeaders($accessToken),
         ];
         $request = $this->getRequest('GET', $url, $options);
-        $response = $this->getParsedResponse($request);
         $userInfo = null;
         try {
+            $response = $this->getParsedResponse($request);
             $userInfo = $this->createResourceOwner($response, new AccessToken([
                 'access_token' => $accessToken
             ]));
