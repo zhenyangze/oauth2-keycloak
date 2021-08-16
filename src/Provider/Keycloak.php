@@ -322,8 +322,14 @@ class Keycloak extends AbstractProvider
         ];
         $request = $this->getRequest('GET', $url, $options);
         $response = $this->getParsedResponse($request);
-        return $this->createResourceOwner($response, new AccessToken([
-            'access_token' => $accessToken
-        ]));
+        $userInfo = null;
+        try {
+            $userInfo = $this->createResourceOwner($response, new AccessToken([
+                'access_token' => $accessToken
+            ]));
+        } catch (\Exception $e) {
+            //token illegal
+        }
+        return $userInfo;
     }
 }
